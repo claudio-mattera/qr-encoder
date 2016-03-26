@@ -93,7 +93,6 @@ class MainWindow(QWidget):
         self.mode_box.addItem("Numeric", "numeric")
         self.mode_box.addItem("Alphanumeric", "alphanumeric")
         self.mode_box.addItem("Binary", "binary")
-        self.mode_box.addItem("Kanji", "kanji")
 
         scale_label = QLabel("&Scale", self)
         self.scale_box = QSpinBox(self)
