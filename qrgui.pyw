@@ -3,7 +3,7 @@ import io
 import logging
 from PyQt5.QtWidgets import (
     QWidget, QApplication, QVBoxLayout, QFormLayout, QLineEdit, QLabel,
-    QComboBox, QSpinBox)
+    QComboBox, QSpinBox, QFileDialog, QAction)
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import (
     Qt, pyqtSlot, pyqtSignal, QThread, QSemaphore, QMutex, QMutexLocker)
@@ -70,6 +70,10 @@ class MainWindow(QWidget):
         self.label = QLabel(self)
         self.label.setAlignment(Qt.AlignHCenter)
 
+        self.save_action = QAction("&Save", self)
+        self.label.addAction(self.save_action)
+        self.label.setContextMenuPolicy(Qt.ActionsContextMenu)
+
         error_label = QLabel("&Error", self)
         self.error_box = QComboBox(self)
         self.error_box.addItem("Highest (30%)", "H")
@@ -113,6 +117,8 @@ class MainWindow(QWidget):
         vbox.addWidget(self.label)
         vbox.addLayout(form)
 
+        self.save_action.triggered.connect(self.save_image)
+
         self.line_edit.textEdited.connect(self.request_new_qr_code)
         self.error_box.currentTextChanged.connect(self.request_new_qr_code)
         self.version_box.valueChanged.connect(self.request_new_qr_code)
@@ -131,12 +137,22 @@ class MainWindow(QWidget):
              self.mode_box.currentData(),
              self.scale_box.value()))
 
+    @pyqtSlot()
+    def save_image(self):
+        filename, ok = QFileDialog.getSaveFileName(
+            self, "Save QR code to PNG image", ".", "PNG Images (*.png)")
+        if ok:
+            pixmap = self.label.pixmap()
+            pixmap.save(filename)
+
     def draw_qr_code(self, image):
         pixmap = QPixmap.fromImage(image)
         self.label.setPixmap(pixmap)
+        self.save_action.setEnabled(True)
 
     def print_error_message(self, message):
         self.label.setText(message)
+        self.save_action.setEnabled(False)
 
     def get_version(self):
         v = self.version_box.value()
