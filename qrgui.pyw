@@ -1,5 +1,6 @@
 import sys
 import io
+import logging
 from PyQt5.QtWidgets import (
     QWidget, QApplication, QVBoxLayout, QFormLayout, QLineEdit, QLabel,
     QComboBox, QSpinBox)
@@ -25,12 +26,13 @@ class WorkerThread(QThread):
             try:
                 text, error, version, mode = self.get_parameters()
                 qr = pyqrcode.create(text, error, version, mode)
-                print(qr)
+                logging.info(qr)
                 buffer = io.BytesIO()
                 qr.png(buffer, scale=6)
                 image = QImage.fromData(buffer.getvalue())
                 self.resultReady.emit(image)
             except ValueError as e:
+                logging.warning(e)
                 self.errorOccurred.emit(str(e))
 
     def set_parameters(self, parameters):
@@ -134,6 +136,7 @@ class MainWindow(QWidget):
             return v
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     app = QApplication(sys.argv)
     ex = MainWindow()
     sys.exit(app.exec_())
