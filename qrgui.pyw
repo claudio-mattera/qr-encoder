@@ -3,8 +3,8 @@ import io
 import logging
 from PyQt5.QtWidgets import (
     QWidget, QApplication, QVBoxLayout, QFormLayout, QLineEdit, QLabel,
-    QComboBox, QSpinBox, QFileDialog, QAction)
-from PyQt5.QtGui import QImage, QPixmap
+    QComboBox, QSpinBox, QFileDialog, QAction, QScrollArea, QMessageBox)
+from PyQt5.QtGui import QImage, QPixmap, QIcon
 from PyQt5.QtCore import (
     Qt, pyqtSlot, pyqtSignal, QThread, QSemaphore, QMutex, QMutexLocker)
 import pyqrcode
@@ -71,8 +71,14 @@ class MainWindow(QWidget):
         self.label.setAlignment(Qt.AlignHCenter)
 
         self.save_action = QAction("&Save", self)
+        self.about_action = QAction("&About...", self)
         self.label.addAction(self.save_action)
+        self.label.addAction(self.about_action)
         self.label.setContextMenuPolicy(Qt.ActionsContextMenu)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(self.label)
+        scroll_area.setWidgetResizable(True)
 
         error_correction_label = QLabel("&Error Correction", self)
         self.error_correction_box = QComboBox(self)
@@ -113,19 +119,21 @@ class MainWindow(QWidget):
 
         vbox = QVBoxLayout(self)
         vbox.addWidget(self.line_edit)
-        vbox.addWidget(self.label)
+        vbox.addWidget(scroll_area)
         vbox.addLayout(form)
 
         self.save_action.triggered.connect(self.save_image)
+        self.about_action.triggered.connect(self.show_about_message)
 
         self.line_edit.textEdited.connect(self.request_new_qr_code)
-        self.error_correction_box.currentTextChanged.connect(self.request_new_qr_code)
+        self.error_correction_box.currentTextChanged.connect(
+            self.request_new_qr_code)
         self.version_box.valueChanged.connect(self.request_new_qr_code)
         self.mode_box.currentTextChanged.connect(self.request_new_qr_code)
         self.scale_box.valueChanged.connect(self.request_new_qr_code)
 
-        self.setWindowTitle('QR')
-        self.show()
+        self.setWindowTitle(QApplication.applicationName())
+        self.setWindowIcon(QIcon('icon.png'))
 
     @pyqtSlot()
     def request_new_qr_code(self):
@@ -144,6 +152,16 @@ class MainWindow(QWidget):
             pixmap = self.label.pixmap()
             pixmap.save(filename)
 
+    @pyqtSlot()
+    def show_about_message(self):
+        message = "%s %s<br>\nDeveloped by <a href=\"%s\">%s</a>" % (
+            QApplication.applicationName(),
+            QApplication.applicationVersion(),
+            QApplication.organizationDomain(),
+            QApplication.organizationName()
+        )
+        QMessageBox.about(self, None, message)
+
     def draw_qr_code(self, image):
         pixmap = QPixmap.fromImage(image)
         self.label.setPixmap(pixmap)
@@ -160,8 +178,19 @@ class MainWindow(QWidget):
         else:
             return v
 
+
+def main():
+    application = QApplication(sys.argv)
+    application.setApplicationName("QR Encoder")
+    application.setApplicationVersion("1.0")
+    application.setOrganizationName("Claudio Mattera")
+    application.setOrganizationDomain(
+        "https://github.com/claudio-mattera/qr-encoder")
+    main_window = MainWindow()
+    main_window.show()
+    sys.exit(application.exec_())
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    app = QApplication(sys.argv)
-    ex = MainWindow()
-    sys.exit(app.exec_())
+    main()
