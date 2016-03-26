@@ -12,6 +12,7 @@ import pyqrcode
 class WorkerThread(QThread):
 
     resultReady = pyqtSignal('QImage')
+    errorOccurred = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -21,13 +22,16 @@ class WorkerThread(QThread):
 
     def run(self):
         while True:
-            text, error, version, mode = self.get_parameters()
-            qr = pyqrcode.create(text, error, version, mode)
-            print(qr)
-            buffer = io.BytesIO()
-            qr.png(buffer, scale=6)
-            image = QImage.fromData(buffer.getvalue())
-            self.resultReady.emit(image)
+            try:
+                text, error, version, mode = self.get_parameters()
+                qr = pyqrcode.create(text, error, version, mode)
+                print(qr)
+                buffer = io.BytesIO()
+                qr.png(buffer, scale=6)
+                image = QImage.fromData(buffer.getvalue())
+                self.resultReady.emit(image)
+            except ValueError as e:
+                self.errorOccurred.emit(str(e))
 
     def set_parameters(self, parameters):
         with QMutexLocker(self.mutex):
@@ -50,6 +54,7 @@ class MainWindow(QWidget):
 
         self.worker = WorkerThread(self)
         self.worker.resultReady.connect(self.draw_qr_code)
+        self.worker.errorOccurred.connect(self.print_error_message)
         self.worker.start()
 
         self.init_ui()
@@ -115,6 +120,9 @@ class MainWindow(QWidget):
     def draw_qr_code(self, image):
         pixmap = QPixmap.fromImage(image)
         self.label.setPixmap(pixmap)
+
+    def print_error_message(self, message):
+        self.label.setText(message)
 
     def get_version(self):
         v = self.version_box.value()
