@@ -52,12 +52,16 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.init_thread()
+        self.init_ui()
+
+        self.request_new_qr_code()
+
+    def init_thread(self):
         self.worker = WorkerThread(self)
         self.worker.resultReady.connect(self.draw_qr_code)
         self.worker.errorOccurred.connect(self.print_error_message)
         self.worker.start()
-
-        self.init_ui()
 
     def init_ui(self):
         self.line_edit = QLineEdit(self)
@@ -103,8 +107,6 @@ class MainWindow(QWidget):
         self.error_box.currentTextChanged.connect(self.request_new_qr_code)
         self.version_box.valueChanged.connect(self.request_new_qr_code)
         self.mode_box.currentTextChanged.connect(self.request_new_qr_code)
-
-        self.request_new_qr_code()
 
         self.setWindowTitle('QR')
         self.show()
