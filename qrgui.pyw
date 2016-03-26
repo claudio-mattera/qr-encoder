@@ -74,12 +74,12 @@ class MainWindow(QWidget):
         self.label.addAction(self.save_action)
         self.label.setContextMenuPolicy(Qt.ActionsContextMenu)
 
-        error_label = QLabel("&Error", self)
-        self.error_box = QComboBox(self)
-        self.error_box.addItem("Highest (30%)", "H")
-        self.error_box.addItem("Quality (25%)", "Q")
-        self.error_box.addItem("Medium (15%)", "M")
-        self.error_box.addItem("Low (7%)", "L")
+        error_correction_label = QLabel("&Error Correction", self)
+        self.error_correction_box = QComboBox(self)
+        self.error_correction_box.addItem("High (30%)", "H")
+        self.error_correction_box.addItem("Quartile (25%)", "Q")
+        self.error_correction_box.addItem("Medium (15%)", "M")
+        self.error_correction_box.addItem("Low (7%)", "L")
 
         version_label = QLabel("&Version", self)
         self.version_box = QSpinBox(self)
@@ -102,12 +102,12 @@ class MainWindow(QWidget):
         self.scale_box.setValue(5)
 
         form = QFormLayout()
-        form.addRow(error_label, self.error_box)
+        form.addRow(error_correction_label, self.error_correction_box)
         form.addRow(version_label, self.version_box)
         form.addRow(mode_label, self.mode_box)
         form.addRow(scale_label, self.scale_box)
 
-        error_label.setBuddy(self.error_box)
+        error_correction_label.setBuddy(self.error_correction_box)
         version_label.setBuddy(self.version_box)
         mode_label.setBuddy(self.mode_box)
         scale_label.setBuddy(self.scale_box)
@@ -120,7 +120,7 @@ class MainWindow(QWidget):
         self.save_action.triggered.connect(self.save_image)
 
         self.line_edit.textEdited.connect(self.request_new_qr_code)
-        self.error_box.currentTextChanged.connect(self.request_new_qr_code)
+        self.error_correction_box.currentTextChanged.connect(self.request_new_qr_code)
         self.version_box.valueChanged.connect(self.request_new_qr_code)
         self.mode_box.currentTextChanged.connect(self.request_new_qr_code)
         self.scale_box.valueChanged.connect(self.request_new_qr_code)
@@ -132,7 +132,7 @@ class MainWindow(QWidget):
     def request_new_qr_code(self):
         self.worker.set_parameters(
             (self.line_edit.text(),
-             self.error_box.currentData(),
+             self.error_correction_box.currentData(),
              self.get_version(),
              self.mode_box.currentData(),
              self.scale_box.value()))
