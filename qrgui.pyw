@@ -4,14 +4,54 @@ from PyQt5.QtWidgets import (
     QWidget, QApplication, QVBoxLayout, QFormLayout, QLineEdit, QLabel,
     QComboBox, QSpinBox)
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QThread, QSemaphore, QMutex
 import pyqrcode
+
+
+class WorkerThread(QThread):
+
+    resultReady = pyqtSignal('QImage')
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.semaphore = QSemaphore()
+        self.mutex = QMutex()
+        self.parameters = None
+
+    def run(self):
+        while True:
+            text, error, version, mode = self.get_parameters()
+            qr = pyqrcode.create(text, error, version, mode)
+            print(qr)
+            buffer = io.BytesIO()
+            qr.png(buffer, scale=6)
+            image = QImage.fromData(buffer.getvalue())
+            self.resultReady.emit(image)
+
+    def set_parameters(self, parameters):
+        self.mutex.lock()
+        self.parameters = parameters
+        if self.semaphore.available() == 0:
+            self.semaphore.release(1)
+        self.mutex.unlock()
+
+    def get_parameters(self):
+        self.semaphore.acquire(1)
+        self.mutex.lock()
+        parameters = self.parameters
+        self.parameters = None
+        self.mutex.unlock()
+        return parameters
 
 
 class MainWindow(QWidget):
 
     def __init__(self):
         super().__init__()
+
+        self.worker = WorkerThread(self)
+        self.worker.resultReady.connect(self.draw_qr_code)
+        self.worker.start()
 
         self.init_ui()
 
@@ -55,27 +95,25 @@ class MainWindow(QWidget):
         vbox.addWidget(self.label)
         vbox.addLayout(form)
 
-        self.line_edit.textEdited.connect(self.draw_qr_code)
-        self.error_box.currentTextChanged.connect(self.draw_qr_code)
-        self.version_box.valueChanged.connect(self.draw_qr_code)
-        self.mode_box.currentTextChanged.connect(self.draw_qr_code)
+        self.line_edit.textEdited.connect(self.request_new_qr_code)
+        self.error_box.currentTextChanged.connect(self.request_new_qr_code)
+        self.version_box.valueChanged.connect(self.request_new_qr_code)
+        self.mode_box.currentTextChanged.connect(self.request_new_qr_code)
 
-        self.draw_qr_code()
+        self.request_new_qr_code()
 
         self.setWindowTitle('QR')
         self.show()
 
     @pyqtSlot()
-    def draw_qr_code(self):
-        qr = pyqrcode.create(
-            self.line_edit.text(),
-            error=self.error_box.currentData(),
-            version=self.get_version(),
-            mode=self.mode_box.currentData())
-        print(qr)
-        buffer = io.BytesIO()
-        qr.png(buffer, scale=6)
-        image = QImage.fromData(buffer.getvalue())
+    def request_new_qr_code(self):
+        self.worker.set_parameters(
+            (self.line_edit.text(),
+             self.error_box.currentData(),
+             self.get_version(),
+             self.mode_box.currentData()))
+
+    def draw_qr_code(self, image):
         pixmap = QPixmap.fromImage(image)
         self.label.setPixmap(pixmap)
 
