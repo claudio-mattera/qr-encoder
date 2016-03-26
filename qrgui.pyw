@@ -24,11 +24,11 @@ class WorkerThread(QThread):
     def run(self):
         while True:
             try:
-                text, error, version, mode = self.get_parameters()
+                text, error, version, mode, scale = self.get_parameters()
                 qr = pyqrcode.create(text, error, version, mode)
                 logging.info(qr)
                 buffer = io.BytesIO()
-                qr.png(buffer, scale=6)
+                qr.png(buffer, scale=scale)
                 image = QImage.fromData(buffer.getvalue())
                 self.resultReady.emit(image)
             except ValueError as e:
@@ -91,14 +91,22 @@ class MainWindow(QWidget):
         self.mode_box.addItem("Binary", "binary")
         self.mode_box.addItem("Kanji", "kanji")
 
+        scale_label = QLabel("&Scale", self)
+        self.scale_box = QSpinBox(self)
+        self.scale_box.setMinimum(1)
+        self.scale_box.setMaximum(10)
+        self.scale_box.setValue(5)
+
         form = QFormLayout()
         form.addRow(error_label, self.error_box)
         form.addRow(version_label, self.version_box)
         form.addRow(mode_label, self.mode_box)
+        form.addRow(scale_label, self.scale_box)
 
         error_label.setBuddy(self.error_box)
         version_label.setBuddy(self.version_box)
         mode_label.setBuddy(self.mode_box)
+        scale_label.setBuddy(self.scale_box)
 
         vbox = QVBoxLayout(self)
         vbox.addWidget(self.line_edit)
@@ -109,6 +117,7 @@ class MainWindow(QWidget):
         self.error_box.currentTextChanged.connect(self.request_new_qr_code)
         self.version_box.valueChanged.connect(self.request_new_qr_code)
         self.mode_box.currentTextChanged.connect(self.request_new_qr_code)
+        self.scale_box.valueChanged.connect(self.request_new_qr_code)
 
         self.setWindowTitle('QR')
         self.show()
@@ -119,7 +128,8 @@ class MainWindow(QWidget):
             (self.line_edit.text(),
              self.error_box.currentData(),
              self.get_version(),
-             self.mode_box.currentData()))
+             self.mode_box.currentData(),
+             self.scale_box.value()))
 
     def draw_qr_code(self, image):
         pixmap = QPixmap.fromImage(image)
