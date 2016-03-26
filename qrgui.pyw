@@ -4,7 +4,8 @@ from PyQt5.QtWidgets import (
     QWidget, QApplication, QVBoxLayout, QFormLayout, QLineEdit, QLabel,
     QComboBox, QSpinBox)
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QThread, QSemaphore, QMutex
+from PyQt5.QtCore import (
+    Qt, pyqtSlot, pyqtSignal, QThread, QSemaphore, QMutex, QMutexLocker)
 import pyqrcode
 
 
@@ -29,19 +30,17 @@ class WorkerThread(QThread):
             self.resultReady.emit(image)
 
     def set_parameters(self, parameters):
-        self.mutex.lock()
-        self.parameters = parameters
-        if self.semaphore.available() == 0:
-            self.semaphore.release(1)
-        self.mutex.unlock()
+        with QMutexLocker(self.mutex):
+            self.parameters = parameters
+            if self.semaphore.available() == 0:
+                self.semaphore.release(1)
 
     def get_parameters(self):
         self.semaphore.acquire(1)
-        self.mutex.lock()
-        parameters = self.parameters
-        self.parameters = None
-        self.mutex.unlock()
-        return parameters
+        with QMutexLocker(self.mutex):
+            parameters = self.parameters
+            self.parameters = None
+            return parameters
 
 
 class MainWindow(QWidget):
