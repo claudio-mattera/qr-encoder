@@ -187,7 +187,7 @@ def main():
     application.setApplicationVersion("1.0")
     application.setOrganizationName("Claudio Mattera")
     application.setOrganizationDomain(
-        "https://github.com/claudio-mattera/qr-encoder")
+        "https://gitlab.com/claudio-mattera/qr-encoder")
     main_window = MainWindow()
     main_window.show()
     sys.exit(application.exec_())
